@@ -111,7 +111,7 @@ for (i in names(d)[c(44:55)]){
                           wasitscv, wasitscm,
                           INHIBITION_INHIBIT_BASELINE_RT, INHIBITION_SWITCH_BASELINE_RT,
                           STROOP_ACC,rs_rt, TotalStars)
-  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max, max_problems)
+  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max)
   COV.MY = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, FIL_DEPRIVATION, cesd_mom_max, max_problems)
   
   test = hima(X=X,Y=Y,M=M,COV.XM=COV.XM, COV.MY=COV.MY,
@@ -133,7 +133,7 @@ for (i in names(d)[c(44:55)]){
                           wasitscv, wasitscm,
                           INHIBITION_INHIBIT_BASELINE_RT, INHIBITION_SWITCH_BASELINE_RT,
                           STROOP_ACC, rs_rt, TotalStars)
-  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max, max_problems)
+  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max)
   COV.MY = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, FIL_THREAT, cesd_mom_max, max_problems)
   
   test = hima(X=X,Y=Y,M=M,COV.XM=COV.XM, COV.MY=COV.MY,
@@ -197,7 +197,7 @@ for (i in names(d)[c(44:55)]){
                           wasitscv, wasitscm,
                           INHIBITION_INHIBIT_BASELINE_RT, INHIBITION_SWITCH_BASELINE_RT,
                           STROOP_ACC, rs_rt, TotalStars)
-  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max, FIL_DEPRIVATION, max_problems)
+  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max, FIL_DEPRIVATION)
   COV.MY = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, FIL_DEPRIVATION, cesd_mom_max, max_problems)
   
   test = hima(X=X,Y=Y,M=M,COV.XM=COV.XM, COV.MY=COV.MY,
@@ -219,7 +219,7 @@ for (i in names(d)[c(44:55)]){
                           wasitscv, wasitscm,
                           INHIBITION_INHIBIT_BASELINE_RT, INHIBITION_SWITCH_BASELINE_RT,
                           STROOP_ACC,rs_rt, TotalStars)
-  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max, FIL_THREAT, max_problems)
+  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max, FIL_THREAT)
   COV.MY = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, FIL_THREAT, cesd_mom_max, max_problems)
   
   test = hima(X=X,Y=Y,M=M,COV.XM=COV.XM, COV.MY=COV.MY,
