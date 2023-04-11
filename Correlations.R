@@ -115,7 +115,10 @@ names(DT_mediators_corr)
 dim(DT_mediators_corr)
 
 # Only between meds and DT, outcomes
-med_corrs1 <- as.data.frame(round(cor(DT_mediators_corr),2)[c(1:19),c(1,2,18,19)])
+med_corrs1 <- as.data.frame(round(cor(DT_mediators_corr,method = c("pearson")),2)[c(1:19),c(1,2,18,19)])
+
+# p-values
+med_corrs1_pvals <- as.data.frame(round(rcorr(as.matrix(DT_mediators_corr),type = "pearson")[["P"]],4)[c(1:19),c(1,2,18,19)])
 
 colnames(med_corrs1) <- c("Threat", "Deprivation",
                          "Latent Internalizing", "Latent Externalizing")
