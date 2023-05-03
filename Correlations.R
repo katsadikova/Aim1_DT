@@ -17,6 +17,7 @@ library(ggplot2)
 library(gridExtra)
 library(ggpubr) # Combine figures
 library(here)
+library(Hmisc)
 
 #--- Set working directory
 setwd("/Users/Kat/Dropbox/A_DISSERTATION/Aims/Aim1/Aim1_DT")
@@ -151,7 +152,9 @@ write.csv(med_corrs1, file=here("results","med_corrs_INT_EXT.csv"))
 
 # Corrs between mediators
 med_corrs2 <- as.data.frame(round(cor(DT_mediators_corr),2)[c(3:17),c(3:17)])
-
+# p-values
+med_corrs2_pvals <- as.data.frame(round(rcorr(as.matrix(DT_mediators_corr),type = "pearson")[["P"]],4)[c(3:17),c(3:17)])
+med_corrs2_pvals
 colnames(med_corrs2) <- c("AB: Attention bias threat",
                           "ER: Adaptation to emotional conflict",
                           "ER: Stroop - fear",

@@ -57,6 +57,22 @@ mediation.rb <- cmest(data = d,
                       inference = "bootstrap")
 summary(mediation.rb)$summarydf
 
+#--- Regression estimated mediation -> additionally adjusting for Tanner doesn't meaningfully change results!!!!
+mediation.rb <- cmest(data = d, 
+                      model = "rb", 
+                      outcome = names(d)[48], 
+                      exposure = "FIL_THREAT", 
+                      mediator = c("rs_rt"),  
+                      EMint = F,
+                      basec = c("S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","TANNER_STAGE"), 
+                      mreg = list("linear"), 
+                      yreg = "linear", 
+                      a = 1, 
+                      astar = 0, 
+                      mval = list(1),
+                      estimation = "imputation", 
+                      inference = "bootstrap")
+summary(mediation.rb)$summarydf
 #-----------------------------------------------------------------------------------#
 #-----------------  Testing other things/sensitivity analyses  ---------------------#
 
