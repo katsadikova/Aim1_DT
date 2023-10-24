@@ -20,8 +20,6 @@ library(reshape2)
 # Load in the merged data file
 load("/Users/Kat/Dropbox/PC/Documents/PHS/Research/Deprivation and Threat/Data/dat.Rdata")
 
-summary(dat$S1AGE)
-
 #~~ Candidate mediator variables: 
 # -----------------------------
 #   1.AB: Attention bias to threat (difference between RT_NEUTRAL_ACCURATE and RT_ANGRY_ACCURATE = attentothreat) 
@@ -35,6 +33,14 @@ summary(dat$S1AGE)
 #                       BothRuns_All_Go_Trials_Accuracy, BothRuns_All_NoGo_Trials_Accuracy, 
 #                       BothRuns_All_Accurate_Go_Trials_RT)
 #   9.RS: Reward sensitivity (TotalStar, difference between RT_4star-RT_0star = rs_rt)
+
+names(dat)
+hist(dat$FINAL_COG_DEP)
+hist(dat$FINAL_COG_DEP_ZSCORE)
+hist(dat$FINAL_EMO_DEP)
+hist(dat$FINAL_EMO_DEP_ZSCORE)
+hist(dat$FINAL_PHYS_DEP)
+hist(dat$FINAL_PHYS_DEP_ZSCORE)
 
 #~~ Create analytic data set
 dat_pre_imp <-
@@ -129,6 +135,7 @@ dat_pre_imp <-
     
     #Exposure vars
     FINAL_THREAT, FINAL_DEPRIVATION, thr_quart, thr_none, dep_quart,
+    FINAL_COG_DEP_ZSCORE, FINAL_EMO_DEP_ZSCORE, FINAL_PHYS_DEP_ZSCORE,
     
     # Predictors from age 11
     S1AGE, SEX, POV_CHRONICITY, INC_NEEDS, DEGREEP1P2,
@@ -148,11 +155,11 @@ dat_pre_imp <-
     rs_rt, TotalStars,
     
     # Outcomes
-    cbcl_int_t2, cbcl_ext_t2, ysr_int_t2, ysr_ext_t2, INT, EXT)
+    cbcl_int_t2, cbcl_ext_t2, ysr_int_t2, ysr_ext_t2, INT, EXT, P)
 
-save(dat_pre_imp, file="/Users/Kat/Dropbox/PC/Documents/PHS/Research/Deprivation and Threat/Data/dat_pre_imp.Rdata")
-write.csv(dat_pre_imp, file="/Users/Kat/Dropbox/PC/Documents/PHS/Research/Deprivation and Threat/Data/dat_pre_imp.csv")
-write.csv(dat_pre_imp, file="/Users/Kat/Library/CloudStorage/OneDrive-HarvardUniversity/VDI/DT/data/dat_pre_imp.csv")
+save(dat_pre_imp, file="/Users/Kat/Dropbox/PC/Documents/PHS/Research/Deprivation and Threat/Data/dat_pre_imp_add_vars.Rdata")
+write.csv(dat_pre_imp, file="/Users/Kat/Dropbox/PC/Documents/PHS/Research/Deprivation and Threat/Data/dat_pre_imp_add_vars.csv")
+write.csv(dat_pre_imp, file="/Users/Kat/Library/CloudStorage/OneDrive-HarvardUniversity/VDI/DT/data/dat_pre_imp_add_vars.csv")
 names(dat_pre_imp)
 
 cor(dat_pre_imp$rs_rt, dat_pre_imp$TotalStars, use="complete.obs")
@@ -203,7 +210,7 @@ d + geom_vline(aes(xintercept=mean(FINAL_DEPRIVATION)),
 names(dat_pre_imp)
 dat_pre_imp <- as.data.frame(dat_pre_imp)
 dat_pre_imp <- sapply(dat_pre_imp, haven::zap_labels)
-write.csv(dat_pre_imp, file="/Users/Kat/Dropbox/PC/Documents/PHS/Research/Deprivation and Threat/Data/dat_pre_imp.csv")
+write.csv(dat_pre_imp, file="/Users/Kat/Dropbox/PC/Documents/PHS/Research/Deprivation and Threat/Data/dat_pre_imp_add_vars.csv")
 names(dat_pre_imp)
 
 #~~ Characterize missingness
@@ -212,8 +219,8 @@ md.pattern(dat_pre_imp, plot = TRUE)
 sapply(dat_pre_imp, function(x) sum(is.na(x)))
 
 #~~ Impute everything (with outcomes)
-data_imp_all <- mice(dat_pre_imp,m=20,maxit=50,meth='pmm',seed=500)
-save(data_imp_all, file="/Users/Kat/Dropbox/PC/Documents/PHS/Research/Deprivation and Threat/Data/data_imp_all.Rdata")
+data_imp_all <- mice(dat_pre_imp,m=20,maxit=5,meth='pmm',seed=500)
+save(data_imp_all, file="/Users/Kat/Dropbox/PC/Documents/PHS/Research/Deprivation and Threat/Data/data_imp_all_add_vars.Rdata")
 
 
 ###########################################################################

@@ -30,7 +30,6 @@ names(dat_pre_imp)
 #--- Load in hot-deck imputed data
 d<-data.frame(read_sas("/Users/Kat/Library/CloudStorage/OneDrive-HarvardUniversity/VDI/DT/data/dat_hotdeck_int_ext.sas7bdat"))
 summary(as.factor(d$ImpIndex)) #141/227 observations imputed due to missingness in 1 or more variables
-
 #-----------------------------------------------------------------------
 #--- Distributions of variables and missing data counts (Appendix table)
 
@@ -151,9 +150,9 @@ write.csv(med_corrs1, file=here("results","med_corrs_INT_EXT.csv"))
 
 
 # Corrs between mediators
-med_corrs2 <- as.data.frame(round(cor(DT_mediators_corr),2)[c(3:17),c(3:17)])
+med_corrs2 <- as.data.frame(round(cor(DT_mediators_corr),2)[c(3:10,13:15,11,12,16,17),c(3:10,13:15,11,12,16,17)])
 # p-values
-med_corrs2_pvals <- as.data.frame(round(rcorr(as.matrix(DT_mediators_corr),type = "pearson")[["P"]],4)[c(3:17),c(3:17)])
+med_corrs2_pvals <- as.data.frame(round(rcorr(as.matrix(DT_mediators_corr),type = "pearson")[["P"]],4)[c(3:10,13:15,11,12,16,17),c(3:10,13:15,11,12,16,17)])
 med_corrs2_pvals
 colnames(med_corrs2) <- c("AB: Attention bias threat",
                           "ER: Adaptation to emotional conflict",
@@ -163,11 +162,11 @@ colnames(med_corrs2) <- c("AB: Attention bias threat",
                           "ToM: Accuracy on cognitive trials",
                           "FC: Skin conductance response to CS+ vs CS-",
                           "PT: Tanner stage",
-                          "AL: Language ability",
-                          "AR: Reasoning ability",
                           "IC: Reaction time on inhibit trials",
                           "IC: Reaction time on switch trials",
                           "IC: Accuracy on Stroop task",
+                          "LA: Language ability",
+                          "R: Reasoning",
                           "RS: Reaction time on high- vs low-reward trials",
                           "RS: Total stars")
 rownames(med_corrs2) <- c("AB: Attention bias threat",
@@ -178,11 +177,11 @@ rownames(med_corrs2) <- c("AB: Attention bias threat",
                           "ToM: Accuracy on cognitive trials",
                           "FC: Skin conductance response to CS+ vs CS-",
                           "PT: Tanner stage",
-                          "AL: Language ability",
-                          "AR: Reasoning ability",
                           "IC: Reaction time on inhibit trials",
                           "IC: Reaction time on switch trials",
                           "IC: Accuracy on Stroop task",
+                          "LA: Language ability",
+                          "R: Reasoning",
                           "RS: Reaction time on high- vs low-reward trials",
                           "RS: Total stars")
 
