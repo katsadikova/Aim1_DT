@@ -25,8 +25,10 @@ library(here)
 #--- Set working directory
 setwd("/Users/Kat/Dropbox/A_DISSERTATION/Aims/Aim1/Aim1_DT/")
 
-# Hot-deck imputed data
+# Hot-deck imputed data - refer to 1 Import data.R and 2 hot-deck-INT-EXT.sas in /Users/Kat/Dropbox/A_DISSERTATION/Aims/Aim1/Aim1_DT for details on its construction
 d<-data.frame(read_sas("/Users/Kat/Library/CloudStorage/OneDrive-HarvardUniversity/VDI/DT/data/dat_hotdeck_int_ext.sas7bdat"))
+#write.csv(d,"/Users/Kat/Dropbox/A_DISSERTATION/Aims/Aim1/Aim1_DT/d.csv")
+
 summary(as.factor(d$ImpIndex)) #141/227 observations imputed due to missingness in 1 or more variables
 
 # Add early-childhood CBCL total problems as a predictor
