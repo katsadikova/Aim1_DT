@@ -107,23 +107,7 @@ dg <- d %>% filter(SEX==1)
 hist(d$rs_rt) # skewed - long left tail - but fine
 hist(d$INT) # fine
 
-#--- Regression estimated mediation - not adjusted for Tanner
-mediation.rb <- cmest(data = d, 
-                      model = "rb", 
-                      outcome = names(d)[48], 
-                      exposure = "FIL_THREAT", 
-                      mediator = c("rs_rt"),  
-                      EMint = F,
-                      basec = c("S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob"), 
-                      mreg = list("linear"), 
-                      yreg = "linear", 
-                      a = 1, 
-                      astar = 0, 
-                      mval = list(1),
-                      estimation = "imputation", 
-                      inference = "bootstrap")
-summary(mediation.rb)$summarydf
-
+set.seed(5)
 #--- Regression estimated mediation -> additionally adjusting for Tanner - THIS IS WHAT's REPORTED IN FIG 1!!!!!
 mediation.rb <- cmest(data = d, 
                       model = "rb", 
@@ -131,7 +115,7 @@ mediation.rb <- cmest(data = d,
                       exposure = "FIL_THREAT", 
                       mediator = c("rs_rt"),  
                       EMint = F,
-                      basec = c("S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob","TANNER_STAGE"), 
+                      basec = c("FIL_DEPRIVATION","S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob","TANNER_STAGE"), 
                       mreg = list("linear"), 
                       yreg = "linear", 
                       a = 1, 
@@ -141,6 +125,23 @@ mediation.rb <- cmest(data = d,
                       inference = "bootstrap")
 summary(mediation.rb)$summarydf
 
+
+#--- Regression estimated mediation - not adjusted for Tanner
+mediation.rb <- cmest(data = d, 
+                      model = "rb", 
+                      outcome = names(d)[48], 
+                      exposure = "FIL_THREAT", 
+                      mediator = c("rs_rt"),  
+                      EMint = F,
+                      basec = c("FIL_DEPRIVATION","S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob"), 
+                      mreg = list("linear"), 
+                      yreg = "linear", 
+                      a = 1, 
+                      astar = 0, 
+                      mval = list(1),
+                      estimation = "imputation", 
+                      inference = "bootstrap")
+summary(mediation.rb)$summarydf
 
 #--- G-formula estimated mediation with Tanner allowed to be affected by threat (tho it's not in this sample) - no substantial change
 mediation.gform <- cmest(data = d, 
@@ -149,7 +150,7 @@ mediation.gform <- cmest(data = d,
                          exposure = "FIL_THREAT", 
                          mediator = c("rs_rt"),  
                          EMint = F,
-                         basec = c("S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob"), 
+                         basec = c("FIL_DEPRIVATION","S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob"), 
                          postc = c("TANNER_STAGE"),
                          mreg = list("linear"), 
                          yreg = "linear", 
@@ -164,22 +165,6 @@ summary(mediation.gform)$summarydf
 #-----------------------------------------------------------------------------------#
 #-----------------  Testing other things/sensitivity analyses  ---------------------#
 
-#--- Regression estimated mediation, adjusted for deprivation & Tanner
-mediation.rb.d <- cmest(data = d, 
-                      model = "rb", 
-                      outcome = names(d)[48], 
-                      exposure = "FIL_THREAT", 
-                      mediator = c("rs_rt"),  
-                      EMint = F,
-                      basec = c("S1AGE","SEX","POV_CHRONICITY","cesd_mom_max", "cbcl_tot_prob", "FIL_DEPRIVATION"),
-                      mreg = list("linear"), 
-                      yreg = "linear", 
-                      a = 1, 
-                      astar = 0, 
-                      mval = list(1),
-                      estimation = "imputation", 
-                      inference = "bootstrap")
-summary(mediation.rb.d)$summarydf
 
 #--- Regression estimated mediation - check for CBCL internalizing
 mediation.rb.cbcl <- cmest(data = d, 
@@ -188,7 +173,7 @@ mediation.rb.cbcl <- cmest(data = d,
                       exposure = "FIL_THREAT", 
                       mediator = c("rs_rt"),  
                       EMint = F,
-                      basec = c("S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob"), 
+                      basec = c("TANNER_STAGE","S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob"), 
                       mreg = list("linear"), 
                       yreg = "linear", 
                       a = 1, 
@@ -205,7 +190,7 @@ mediation.rb.ysr <- cmest(data = d,
                            exposure = "FIL_THREAT", 
                            mediator = c("rs_rt"),  
                            EMint = F,
-                           basec = c("S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob"), 
+                           basec = c("TANNER_STAGE","S1AGE","SEX","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob"), 
                            mreg = list("linear"), 
                            yreg = "linear", 
                            a = 1, 
@@ -225,7 +210,7 @@ mediation.gform <- cmest(data = db,
                          exposure = "FIL_THREAT", 
                          mediator = c("rs_rt"),  
                          EMint = F,
-                         basec = c("S1AGE","POV_CHRONICITY","cesd_mom_max"), 
+                         basec = c("S1AGE","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob"), 
                          postc = c("TANNER_STAGE"),
                          mreg = list("linear"), 
                          yreg = "linear", 
@@ -245,7 +230,7 @@ mediation.gform <- cmest(data = dg,
                          exposure = "FIL_THREAT", 
                          mediator = c("rs_rt"),  
                          EMint = F,
-                         basec = c("S1AGE","POV_CHRONICITY","cesd_mom_max"), 
+                         basec = c("S1AGE","POV_CHRONICITY","cesd_mom_max","cbcl_tot_prob"), 
                          postc = c("TANNER_STAGE"),
                          mreg = list("linear"), 
                          yreg = "linear", 

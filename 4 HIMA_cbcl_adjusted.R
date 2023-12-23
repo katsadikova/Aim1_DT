@@ -115,91 +115,6 @@ dg <- d %>% filter(SEX==1)
 summary(as.factor(db$TANNER_STAGE))
 summary(as.factor(dg$TANNER_STAGE))
 
-#-----------------------#
-#--- HIMA - adjusted ---#
-#-----------------------#
-
-thr_hima <- list()
-#--- Run the algorithms through CBCL int/ext & YSR int/ext outcomes
-for (i in names(d)[c(48,49)]){
-  X = d$FIL_THREAT
-  #Standardize outcome to have mean 0, std 1
-  Y = d[[i]]
-  print(summary(Y))
-  M = d %>% dplyr::select(attentothreat,
-                          ADAPTATION,STROOP_FEAR, STROOP_HAPPY, 
-                          ACC_ATOM, ACC_CTOM, 
-                          scr,TANNER_STAGE,
-                          wasitscv, wasitscm,
-                          INHIBITION_INHIBIT_BASELINE_RT, INHIBITION_SWITCH_BASELINE_RT,
-                          STROOP_ACC,rs_rt, TotalStars)
-  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max, cbcl_tot_prob)
-  COV.MY = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, FIL_DEPRIVATION, cesd_mom_max, cbcl_tot_prob)
-  
-  test = hima(X=X,Y=Y,M=M,COV.XM=COV.XM, COV.MY=COV.MY,
-              verbose = TRUE)
-  test$mediator = row.names(test)
-  
-  thr_hima[[i]] <- test
-}
-
-dep_hima <- list()
-for (i in names(d)[c(48,49)]){
-  X = d$FIL_DEPRIVATION
-  #Standardize outcome to have mean 0, std 1
-  Y = d[[i]]
-  M = d %>% dplyr::select(attentothreat,
-                          ADAPTATION,STROOP_FEAR, STROOP_HAPPY, 
-                          ACC_ATOM, ACC_CTOM, 
-                          scr,TANNER_STAGE,
-                          wasitscv, wasitscm,
-                          INHIBITION_INHIBIT_BASELINE_RT, INHIBITION_SWITCH_BASELINE_RT,
-                          STROOP_ACC, rs_rt, TotalStars)
-  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max)
-  COV.MY = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, FIL_THREAT, cesd_mom_max)
-  
-  test = hima(X=X,Y=Y,M=M,COV.XM=COV.XM, COV.MY=COV.MY,
-              verbose = TRUE)
-  test$mediator = row.names(test)
-  
-  dep_hima[[i]] <- test
-}
-
-
-thr<-bind_rows(thr_hima, .id = "outcome") %>%
-  mutate(exposure="Threat")
-dep<-bind_rows(dep_hima, .id = "outcome") %>%
-  mutate(exposure = "Deprivation")
-results_adj <- rbind(thr,dep) 
-
-names(results_adj) <- c("outcome","alpha","P_alpha","beta","P_beta","gamma","gamma_SE",
-                            "alpha_beta","perc_total_effect","Bonferroni.p","BH.FDR","mediator","exposure")
-
-results_adj <- results_adj %>%
-  mutate(
-    alpha_LLCI = se.from.p(alpha, P_alpha, 227, effect.size.type = 'difference', calculate.g = FALSE)$LLCI,
-    alpha_ULCI = se.from.p(alpha, P_alpha, 227, effect.size.type = 'difference', calculate.g = FALSE)$ULCI,
-    beta_LLCI = se.from.p(beta, P_beta, 227, effect.size.type = 'difference', calculate.g = FALSE)$LLCI,
-    beta_ULCI = se.from.p(beta, P_beta, 227, effect.size.type = 'difference', calculate.g = FALSE)$ULCI,
-    gamma_LLCI = gamma - 1.96*gamma_SE,
-    gamma_ULCI = gamma + 1.96*gamma_SE,
-    alpha_CI = paste0(round(alpha,2),"(",round(alpha_LLCI,2),",", round(alpha_ULCI,2),")"),
-    beta_CI = paste0(round(beta,2),"(",round(beta_LLCI,2),",", round(beta_ULCI,2),")"),
-    gamma_CI = paste0(round(gamma,2),"(",round(gamma_LLCI,2),",", round(gamma_ULCI,2),")")
-  ) %>%
-  group_by(outcome,exposure) %>%
-  mutate(
-    n_meds=n()
-  ) %>%
-  ungroup() %>%
-  mutate(
-    unadj_p = Bonferroni.p/n_meds,
-    joint_sig = case_when(unadj_p<0.1 ~ 1,
-                          T ~ 0)) %>%
-  dplyr::select(c(outcome, exposure, mediator, n_meds, alpha_CI, 
-                  beta_CI, gamma_CI, alpha_beta,
-                  perc_total_effect,BH.FDR,Bonferroni.p,unadj_p,joint_sig))
-write.csv(results_adj, file=here("results","HIMA_results_adj_INT_EXT_TESTING_NO_NOGO_cbcl_tot_prob.csv"))
 
 #--------------------------------#
 #--- HIMA - mutually adjusted ---#
@@ -314,12 +229,12 @@ noInt_est_CI<-function(coefs,row,label,type){
 #-- OVERALL models for INT & THREAT informed by HIMA ---#
 
 #-- GAMMA: Effect of threat on INT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_thr_rs=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
-gamma_thr_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","gamma")
+gamma_thr_rs=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
+gamma_thr_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TANNER_STAGE & rs_rt), adjusted for age, sex, early-life poverty and maternal depression
-alpha_thr_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
-alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_thr_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
+alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_thr_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+rs_rt+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),4,"Reward Sensitivity (RT contrast)","beta")
@@ -340,12 +255,12 @@ THR_INT<-THR_INT %>%
 #-- BOYS models for INT & THREAT informed by HIMA ---#
 
 #-- GAMMA: Effect of threat on INT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_thr_rs=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
-gamma_thr_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","gamma")
+gamma_thr_rs=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
+gamma_thr_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TANNER_STAGE & rs_rt), adjusted for age, sex, early-life poverty and maternal depression
-alpha_thr_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
-alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_thr_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
+alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_thr_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+rs_rt+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),4,"Reward Sensitivity (RT contrast)","beta")
@@ -367,12 +282,12 @@ THR_INT_BOYS<-THR_INT_BOYS %>%
 
 
 #-- GAMMA: Effect of threat on INT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_thr_rs=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
-gamma_thr_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","gamma")
+gamma_thr_rs=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
+gamma_thr_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TANNER_STAGE & rs_rt), adjusted for age, sex, early-life poverty and maternal depression
-alpha_thr_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
-alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_thr_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
+alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_thr_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+rs_rt+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),4,"Reward Sensitivity (RT contrast)","beta")
@@ -392,12 +307,12 @@ THR_INT_GIRLS<-THR_INT_GIRLS %>%
 #-- OVERALL models for INT & DEPRIVATION informed by HIMA ---#
 
 #-- GAMMA: Effect of threat on INT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
-gamma_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","gamma")
+gamma_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
+gamma_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TANNER_STAGE & rs_rt), adjusted for age, sex, early-life poverty and maternal depression
-alpha_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
-alpha_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
+alpha_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+rs_rt+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),4,"Reward Sensitivity (RT contrast)", "beta")
@@ -416,12 +331,12 @@ DEP_INT<-DEP_INT %>%
 #-- BOYS models for INT & DEPRIVATION informed by HIMA ---#
 
 #-- GAMMA: Effect of threat on INT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
-gamma_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","gamma")
+gamma_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
+gamma_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TANNER_STAGE & rs_rt), adjusted for age, sex, early-life poverty and maternal depression
-alpha_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
-alpha_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
+alpha_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+rs_rt+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),4,"Reward Sensitivity (RT contrast)", "beta")
@@ -441,12 +356,12 @@ DEP_INT_BOYS<-DEP_INT_BOYS %>%
 #-- GIRLS models for INT & DEPRIVATION informed by HIMA ---#
 
 #-- GAMMA: Effect of threat on INT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
-gamma_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","gamma")
+gamma_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","gamma")
+gamma_tanner=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TANNER_STAGE & rs_rt), adjusted for age, sex, early-life poverty and maternal depression
-alpha_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
-alpha_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_rs_rt=noInt_est_CI(data.frame(summary(lm(rs_rt~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (RT contrast)","alpha")
+alpha_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_rs_rt=noInt_est_CI(data.frame(summary(lm(INT~FIL_DEPRIVATION+FIL_THREAT+rs_rt+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),4,"Reward Sensitivity (RT contrast)", "beta")
@@ -465,12 +380,12 @@ DEP_INT_GIRLS<-DEP_INT_GIRLS %>%
 #-- OVERALL models for EXT & THREAT informed by HIMA ---#
 
 #-- GAMMA: Effect of threat on INT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (Total stars)", "gamma")
-gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage", "gamma")
+gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (Total stars)", "gamma")
+gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage", "gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TotalStars,TANNER_STAGE & BothRuns_All_NoGo_Trials_Accurac), adjusted for age, sex, early-life poverty and maternal depression
-alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
-alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
+alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_thr_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+TotalStars+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),4,"Reward Sensitivity (Total stars)","beta")
@@ -489,12 +404,12 @@ THR_EXT<-THR_EXT %>%
 #-- BOYS models for EXT & THREAT informed by HIMA ---#
 
 #-- GAMMA: Effect of threat on INT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (Total stars)", "gamma")
-gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage", "gamma")
+gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (Total stars)", "gamma")
+gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage", "gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TotalStars,TANNER_STAGE & BothRuns_All_NoGo_Trials_Accurac), adjusted for age, sex, early-life poverty and maternal depression
-alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
-alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
+alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_thr_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+TotalStars+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),4,"Reward Sensitivity (Total stars)","beta")
@@ -513,12 +428,12 @@ THR_EXT_BOYS<-THR_EXT_BOYS %>%
 #-- GIRLS models for EXT & THREAT informed by HIMA ---#
 
 #-- GAMMA: Effect of threat on INT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (Total stars)", "gamma")
-gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage", "gamma")
+gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (Total stars)", "gamma")
+gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage", "gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TotalStars,TANNER_STAGE & BothRuns_All_NoGo_Trials_Accurac), adjusted for age, sex, early-life poverty and maternal depression
-alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
-alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
+alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_THREAT+FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_thr_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+TotalStars+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),4,"Reward Sensitivity (Total stars)","beta")
@@ -537,12 +452,12 @@ THR_EXT_GIRLS<-THR_EXT_GIRLS %>%
 #-- OVERALL models for EXT & DEPRIVATION informed by HIMA ---#
 
 #-- GAMMA: Effect of deprivation on EXTT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","gamma")
-gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","gamma")
+gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","gamma")
+gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TotalStars,TANNER_STAGE & BothRuns_All_NoGo_Trials_Accurac), adjusted for age, sex, early-life poverty and maternal depression
-alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
-alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
+alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_thr_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+TotalStars+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=d))[["coefficients"]]),4,"Reward Sensitivity (Total stars)","beta")
@@ -562,12 +477,12 @@ DEP_EXT<-DEP_EXT %>%
 #-- BOYS models for EXT & DEPRIVATION informed by HIMA ---#
 
 #-- GAMMA: Effect of deprivation on EXTT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","gamma")
-gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","gamma")
+gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","gamma")
+gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TotalStars,TANNER_STAGE & BothRuns_All_NoGo_Trials_Accurac), adjusted for age, sex, early-life poverty and maternal depression
-alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
-alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
+alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_thr_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+TotalStars+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=db))[["coefficients"]]),4,"Reward Sensitivity (Total stars)","beta")
@@ -586,12 +501,12 @@ DEP_EXT_BOYS<-DEP_EXT_BOYS %>%
 #-- GIRLS models for INT & DEPRIVATION informed by HIMA ---#
 
 #-- GAMMA: Effect of deprivation on EXTT, adjusted for age, sex, early-life poverty and maternal depression
-gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","gamma")
-gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","gamma")
+gamma_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","gamma")
+gamma_tanner=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","gamma")
 
 #-- ALPHAS: Effects of threat on retained mediators (TotalStars,TANNER_STAGE & BothRuns_All_NoGo_Trials_Accurac), adjusted for age, sex, early-life poverty and maternal depression
-alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
-alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","alpha")
+alpha_thr_stars=noInt_est_CI(data.frame(summary(lm(TotalStars~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Reward Sensitivity (Total stars)","alpha")
+alpha_thr_tanner=noInt_est_CI(data.frame(summary(lm(TANNER_STAGE~FIL_DEPRIVATION+FIL_THREAT+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),2,"Tanner Stage","alpha")
 
 #-- BETAs: Effects of retained mediators (TANNER_STAGE & rs_rt) on INT, adjusted for threat, deprivation, age, sex, early-life poverty and maternal depression
 beta_thr_stars=noInt_est_CI(data.frame(summary(lm(EXT~FIL_DEPRIVATION+FIL_THREAT+TotalStars+TANNER_STAGE+SEX+S1AGE+POV_CHRONICITY+cesd_mom_max+cbcl_tot_prob, data=dg))[["coefficients"]]),4,"Reward Sensitivity (Total stars)","beta")
@@ -616,7 +531,7 @@ HIMA_ALL_BY_SEX <- rbind(THR_INT, THR_INT_BOYS, THR_INT_GIRLS,
                          THR_EXT, THR_EXT_BOYS, THR_EXT_GIRLS, 
                          DEP_EXT, DEP_EXT_BOYS, DEP_EXT_GIRLS)
 
-write.csv(HIMA_ALL_BY_SEX, file=here("results","HIMA_ALL_BY_SEX_INT_EXT.csv"))
+write.csv(HIMA_ALL_BY_SEX, file=here("/Users/Kat/Dropbox/A_DISSERTATION/Aims/Aim1/Aim1_DT/results/HIMA_ALL_BY_SEX_INT_EXT_mutually_adjusted.csv"))
 
 
 ########## Interactions between threat and deprivation for INT and EXT ##########
@@ -724,4 +639,96 @@ DEP_EXT_ma<-DEP_EXT %>%
 HIMA_ALL_mutually_adjusted <- rbind(THR_INT_ma,DEP_INT_ma, 
                                     THR_EXT_ma, DEP_EXT_ma)
 
-write.csv(HIMA_ALL_mutually_adjusted, file=here("results","HIMA_ALL_mutually_adjusted.csv"))
+write.csv(HIMA_ALL_mutually_adjusted, file=("/Users/Kat/Dropbox/A_DISSERTATION/Aims/Aim1/Aim1_DT/results/Table3_HIMA_ALL_mutually_adjusted.csv"))
+
+
+
+
+#-- Co-authors insisted that the primary analysis be mutually adjusted
+#-----------------------------------#
+#--- HIMA - adjusted             ---#
+#--- demoted from primary        ---#
+#-----------------------------------#
+
+thr_hima <- list()
+#--- Run the algorithms through CBCL int/ext & YSR int/ext outcomes
+for (i in names(d)[c(48,49)]){
+  X = d$FIL_THREAT
+  #Standardize outcome to have mean 0, std 1
+  Y = d[[i]]
+  print(summary(Y))
+  M = d %>% dplyr::select(attentothreat,
+                          ADAPTATION,STROOP_FEAR, STROOP_HAPPY, 
+                          ACC_ATOM, ACC_CTOM, 
+                          scr,TANNER_STAGE,
+                          wasitscv, wasitscm,
+                          INHIBITION_INHIBIT_BASELINE_RT, INHIBITION_SWITCH_BASELINE_RT,
+                          STROOP_ACC,rs_rt, TotalStars)
+  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max, cbcl_tot_prob)
+  COV.MY = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, FIL_DEPRIVATION, cesd_mom_max, cbcl_tot_prob)
+  
+  test = hima(X=X,Y=Y,M=M,COV.XM=COV.XM, COV.MY=COV.MY,
+              verbose = TRUE)
+  test$mediator = row.names(test)
+  
+  thr_hima[[i]] <- test
+}
+
+dep_hima <- list()
+for (i in names(d)[c(48,49)]){
+  X = d$FIL_DEPRIVATION
+  #Standardize outcome to have mean 0, std 1
+  Y = d[[i]]
+  M = d %>% dplyr::select(attentothreat,
+                          ADAPTATION,STROOP_FEAR, STROOP_HAPPY, 
+                          ACC_ATOM, ACC_CTOM, 
+                          scr,TANNER_STAGE,
+                          wasitscv, wasitscm,
+                          INHIBITION_INHIBIT_BASELINE_RT, INHIBITION_SWITCH_BASELINE_RT,
+                          STROOP_ACC, rs_rt, TotalStars)
+  COV.XM = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, cesd_mom_max)
+  COV.MY = d %>% dplyr::select(SEX, S1AGE, POV_CHRONICITY, FIL_THREAT, cesd_mom_max)
+  
+  test = hima(X=X,Y=Y,M=M,COV.XM=COV.XM, COV.MY=COV.MY,
+              verbose = TRUE)
+  test$mediator = row.names(test)
+  
+  dep_hima[[i]] <- test
+}
+
+
+thr<-bind_rows(thr_hima, .id = "outcome") %>%
+  mutate(exposure="Threat")
+dep<-bind_rows(dep_hima, .id = "outcome") %>%
+  mutate(exposure = "Deprivation")
+results_adj <- rbind(thr,dep) 
+
+names(results_adj) <- c("outcome","alpha","P_alpha","beta","P_beta","gamma","gamma_SE",
+                        "alpha_beta","perc_total_effect","Bonferroni.p","BH.FDR","mediator","exposure")
+
+results_adj <- results_adj %>%
+  mutate(
+    alpha_LLCI = se.from.p(alpha, P_alpha, 227, effect.size.type = 'difference', calculate.g = FALSE)$LLCI,
+    alpha_ULCI = se.from.p(alpha, P_alpha, 227, effect.size.type = 'difference', calculate.g = FALSE)$ULCI,
+    beta_LLCI = se.from.p(beta, P_beta, 227, effect.size.type = 'difference', calculate.g = FALSE)$LLCI,
+    beta_ULCI = se.from.p(beta, P_beta, 227, effect.size.type = 'difference', calculate.g = FALSE)$ULCI,
+    gamma_LLCI = gamma - 1.96*gamma_SE,
+    gamma_ULCI = gamma + 1.96*gamma_SE,
+    alpha_CI = paste0(round(alpha,2),"(",round(alpha_LLCI,2),",", round(alpha_ULCI,2),")"),
+    beta_CI = paste0(round(beta,2),"(",round(beta_LLCI,2),",", round(beta_ULCI,2),")"),
+    gamma_CI = paste0(round(gamma,2),"(",round(gamma_LLCI,2),",", round(gamma_ULCI,2),")")
+  ) %>%
+  group_by(outcome,exposure) %>%
+  mutate(
+    n_meds=n()
+  ) %>%
+  ungroup() %>%
+  mutate(
+    unadj_p = Bonferroni.p/n_meds,
+    joint_sig = case_when(unadj_p<0.1 ~ 1,
+                          T ~ 0)) %>%
+  dplyr::select(c(outcome, exposure, mediator, n_meds, alpha_CI, 
+                  beta_CI, gamma_CI, alpha_beta,
+                  perc_total_effect,BH.FDR,Bonferroni.p,unadj_p,joint_sig))
+write.csv(results_adj, file=here("results","HIMA_results_adj_INT_EXT_TESTING_NO_NOGO_cbcl_tot_prob.csv"))
+
